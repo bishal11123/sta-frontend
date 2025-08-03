@@ -1,211 +1,92 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-import Navbar from '../components/Navbar';
 
-export default function MyClasses() {
+const API_BASE = process.env.REACT_APP_BACKEND_URL;
+
+const MyClasses = () => {
   const [classes, setClasses] = useState([]);
   const [newClassName, setNewClassName] = useState('');
-  const [expandedClassIds, setExpandedClassIds] = useState(new Set());
-
-  useEffect(() => {
-    fetchClasses();
-  }, []);
 
   const fetchClasses = async () => {
     try {
-      const res = await axios.get('http://localhost:5001/api/classes');
+      const res = await axios.get(`${API_BASE}/api/classes`);
       setClasses(res.data);
     } catch (error) {
       toast.error('Failed to fetch classes');
     }
   };
 
-  const handleCreateClass = async (e) => {
-    e.preventDefault();
-    if (!newClassName.trim()) return;
+  const handleCreateClass = async () => {
+    if (!newClassName.trim()) {
+      toast.warning('Class name is required');
+      return;
+    }
+
     try {
-      await axios.post('http://localhost:5001/api/classes', { name: newClassName });
+      const res = await axios.post(`${API_BASE}/api/classes`, {
+        name: newClassName,
+      });
+      toast.success('Class created successfully');
       setNewClassName('');
       fetchClasses();
-      toast.success('Class created successfully!');
     } catch (error) {
-      toast.error('Failed to create class');
+      toast.error('Error creating class');
     }
   };
 
-  const handleDeleteClass = async (classId) => {
-    if (!window.confirm('Are you sure you want to delete this class?')) return;
+  const handleDeleteClass = async (id) => {
     try {
-      await axios.delete(`http://localhost:5001/api/classes/${classId}`);
-      setExpandedClassIds((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(classId);
-        return newSet;
-      });
+      await axios.delete(`${API_BASE}/api/classes/${id}`);
+      toast.success('Class deleted');
       fetchClasses();
-      toast.success('Class deleted successfully');
     } catch (error) {
-      toast.error('Failed to delete class');
+      toast.error('Error deleting class');
     }
   };
 
-  const toggleExpand = (classId) => {
-    setExpandedClassIds((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(classId)) {
-        newSet.delete(classId);
-      } else {
-        newSet.add(classId);
-      }
-      return newSet;
-    });
-  };
+  useEffect(() => {
+    fetchClasses();
+  }, []);
 
   return (
-    <div style={{ padding: '20px' }}>
-      <Navbar />
-      <h2>📚 My Classes</h2>
+    <div className="p-4">
+      <h2 className="text-xl font-semibold mb-4">My Classes</h2>
 
-      {/* Add Class Form */}
-      <form onSubmit={handleCreateClass} style={{ marginBottom: '20px' }}>
+      <div className="flex gap-2 mb-4">
         <input
           type="text"
+          placeholder="Enter class name"
           value={newClassName}
           onChange={(e) => setNewClassName(e.target.value)}
-          placeholder="Enter new class name"
-          style={{ padding: '8px', width: '250px', marginRight: '10px' }}
+          className="border border-gray-300 px-4 py-2 rounded w-full"
         />
-        <button type="submit" style={btnGreen}>➕ Create Class</button>
-      </form>
+        <button
+          onClick={handleCreateClass}
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+        >
+          Create
+        </button>
+      </div>
 
-      {/* Classes List */}
-      {classes.map((cls) => {
-        const isExpanded = expandedClassIds.has(cls._id);
-        return (
-          <motion.div
+      <ul className="space-y-2">
+        {classes.map((cls) => (
+          <li
             key={cls._id}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-            style={classCard}
+            className="flex justify-between items-center border px-4 py-2 rounded"
           >
-            <div
-              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
-              onClick={() => toggleExpand(cls._id)}
+            <span>{cls.name}</span>
+            <button
+              onClick={() => handleDeleteClass(cls._id)}
+              className="text-red-600 hover:underline"
             >
-              <h3 style={{ margin: 0 }}>{cls.name}</h3>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <strong>Total Students: </strong>&nbsp;{cls.students?.length || 0}
-                <button style={btnSmall} onClick={(e) => { e.stopPropagation(); toggleExpand(cls._id); }}>
-                  {isExpanded ? '▲ Hide Details' : '▼ Show Details'}
-                </button>
-                <button
-                  style={btnRed}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteClass(cls._id);
-                  }}
-                >
-                  🗑️
-                </button>
-              </div>
-            </div>
-
-            {isExpanded && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                transition={{ duration: 0.3 }}
-              >
-                <table style={table}>
-                  <thead>
-                    <tr>
-                      <th style={th}>Name</th>
-                      <th style={th}>Start Date</th>
-                      <th style={th}>Remarks</th>
-                      <th style={th}>COE Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {cls.students?.length > 0 ? (
-                      cls.students.map((s) => (
-                        <tr key={s._id}>
-                          <td style={td}>{s.studentName}</td>
-                          <td style={td}>{new Date(s.consultancyAdmissionDate).toLocaleDateString()}</td>
-                          <td style={td}>{s.remarks || '-'}</td>
-                          <td style={td}>{s.COEStatus}</td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan="4" style={{ ...td, textAlign: 'center' }}>No students in this class.</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </motion.div>
-            )}
-          </motion.div>
-        );
-      })}
+              Delete
+            </button>
+          </li>
+        ))}
+      </ul>
     </div>
   );
-}
-
-const btnGreen = {
-  padding: '8px 16px',
-  backgroundColor: '#28a745',
-  color: 'white',
-  border: 'none',
-  borderRadius: '5px',
-  cursor: 'pointer',
 };
 
-const btnRed = {
-  padding: '5px 10px',
-  backgroundColor: '#dc3545',
-  color: 'white',
-  border: 'none',
-  borderRadius: '4px',
-  cursor: 'pointer',
-  marginLeft: '10px',
-};
-
-const btnSmall = {
-  padding: '4px 8px',
-  backgroundColor: '#007bff',
-  color: 'white',
-  border: 'none',
-  borderRadius: '4px',
-  cursor: 'pointer',
-  marginLeft: '10px',
-};
-
-const classCard = {
-  marginBottom: '20px',
-  padding: '15px',
-  border: '1px solid #ccc',
-  borderRadius: '8px',
-  backgroundColor: '#f9f9f9',
-};
-
-const table = {
-  width: '100%',
-  borderCollapse: 'collapse',
-  marginTop: '10px',
-};
-
-const th = {
-  backgroundColor: '#007bff',
-  color: 'white',
-  padding: '8px',
-  border: '1px solid #ccc',
-};
-
-const td = {
-  padding: '8px',
-  border: '1px solid #ccc',
-};
+export default MyClasses;
