@@ -19,9 +19,12 @@ export default function StudentForm({ onSuccess }) {
     fetchClasses();
   }, []);
 
+  const API_BASE = process.env.REACT_APP_BACKEND_URL;
+
+
   const fetchClasses = async () => {
     try {
-      const response = await axios.get('http://localhost:5001/api/classes');
+      const response = await axios.get(`${API_BASE}/api/classes`);
       const classesData = response.data.classes || response.data; // try both depending on backend shape
       setClasses(classesData);
     } catch (error) {
@@ -36,6 +39,8 @@ export default function StudentForm({ onSuccess }) {
       [name]: value,
     }));
   };
+
+  
 
   const handleSubmit = async (e) => {
     e.preventDefault();
