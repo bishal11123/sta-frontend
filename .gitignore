@@ -1,0 +1,6 @@
+# Ignore dependencies and caches
+node_modules/
+.cache/
+dist/
+.env
+
