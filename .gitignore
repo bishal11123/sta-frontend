@@ -1,6 +1,8 @@
-# Ignore dependencies and caches
+# .gitignore
+
 node_modules/
 .cache/
 dist/
 .env
-
+.DS_Store
+build/
